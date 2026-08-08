@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MindCheck AI — A calmer place to think things through</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,650&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root[data-theme="light"]{
+    --bg:#F6F8F7; --surface:#FFFFFF; --surface-alt:#EDF3F0;
+    --text:#243130; --text-muted:#5B6B66;
+    --primary:#3F7D6C; --primary-hover:#356A5C; --primary-soft:#DCEAE5;
+    --secondary:#6E86A8; --secondary-soft:#E4EAF2;
+    --crisis:#B5483F; --crisis-soft:#F6E3E0; --crisis-hover:#9C3B33;
+    --border:#DCE4E1; --shadow: 0 8px 30px -12px rgba(38,64,58,0.18);
+  }
+  :root[data-theme="dark"]{
+    --bg:#0F1614; --surface:#161F1C; --surface-alt:#1C2723;
+    --text:#E7EEEA; --text-muted:#9FB0AA;
+    --primary:#6FBBA3; --primary-hover:#7FC9B2; --primary-soft:#1D3630;
+    --secondary:#93AAC9; --secondary-soft:#212C38;
+    --crisis:#E08079; --crisis-soft:#3A211E; --crisis-hover:#E8938D;
+    --border:#283530; --shadow: 0 8px 30px -12px rgba(0,0,0,0.5);
+  }
+  body{ background:var(--bg); color:var(--text); font-family:'Source Sans 3',sans-serif; }
+  .font-display{ font-family:'Fraunces',serif; }
+  .bg-surface{ background:var(--surface); }
+  .bg-surface-alt{ background:var(--surface-alt); }
+  .text-muted{ color:var(--text-muted); }
+  .border-app{ border-color:var(--border); }
+  .text-primary{ color:var(--primary); }
+  .bg-primary{ background:var(--primary); }
+  .bg-primary:hover{ background:var(--primary-hover); }
+  .bg-primary-soft{ background:var(--primary-soft); }
+  .text-secondary{ color:var(--secondary); }
+  .bg-secondary-soft{ background:var(--secondary-soft); }
+  .bg-crisis{ background:var(--crisis); }
+  .bg-crisis:hover{ background:var(--crisis-hover); }
+  .bg-crisis-soft{ background:var(--crisis-soft); }
+  .text-crisis{ color:var(--crisis); }
+  .shadow-app{ box-shadow:var(--shadow); }
+
+  /* Signature element: breathing circle, paced ~4s in / 4s out */
+  .breathe-wrap{ position:relative; width:220px; height:220px; }
+  .breathe-ring{
+    position:absolute; inset:0; border-radius:9999px;
+    background: radial-gradient(circle at 35% 30%, var(--primary-soft), var(--primary) 75%);
+    animation: breathe 8s ease-in-out infinite;
+    opacity:0.9;
+  }
+  .breathe-ring.delay{ animation-delay: -2s; opacity:0.35; filter:blur(2px); }
+  @keyframes breathe{
+    0%,100%{ transform:scale(0.82); }
+    50%{ transform:scale(1); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .breathe-ring{ animation:none; }
+    * { scroll-behavior:auto !important; }
+  }
+  .breathe-label{ animation: labelFade 8s ease-in-out infinite; }
+  @keyframes labelFade{ 0%,45%{opacity:1;} 50%,95%{opacity:1;} }
+
+  .chip{ transition: all .15s ease; }
+  .chip:hover{ transform: translateY(-1px); box-shadow: var(--shadow); }
+
+  .msg-in{ animation: rise .25s ease-out; }
+  @keyframes rise{ from{ opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  .typing-dot{ animation: pulse 1.2s ease-in-out infinite; }
+  .typing-dot:nth-child(2){ animation-delay:.15s; }
+  .typing-dot:nth-child(3){ animation-delay:.3s; }
+  @keyframes pulse{ 0%,60%,100%{opacity:.3; transform:scale(0.85);} 30%{opacity:1; transform:scale(1);} }
+
+  ::-webkit-scrollbar{ width:8px; height:8px; }
+  ::-webkit-scrollbar-thumb{ background: var(--border); border-radius:8px; }
+
+  .focus-ring:focus-visible{ outline:2px solid var(--primary); outline-offset:2px; }
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- ================= LANDING VIEW ================= -->
+<div id="landing-view">
+  <header class="max-w-6xl mx-auto flex items-center justify-between px-6 py-6">
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-full bg-primary"></div>
+      <span class="font-display text-lg font-medium">MindCheck AI</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <button onclick="toggleTheme()" id="theme-toggle-landing" class="focus-ring w-10 h-10 rounded-full border border-app flex items-center justify-center text-sm">🌙</button>
+      <button onclick="openCrisisModal()" class="focus-ring hidden sm:inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-full bg-crisis-soft text-crisis border border-app">
+        Get Immediate Help
+      </button>
+      <button onclick="enterApp()" class="focus-ring text-sm font-semibold px-4 py-2 rounded-full bg-primary text-white">Open Chat</button>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="max-w-6xl mx-auto px-6 pt-10 pb-20 grid md:grid-cols-2 gap-12 items-center">
+    <div>
+      <p class="text-secondary text-sm font-semibold tracking-wide uppercase mb-4">A space to slow down and think</p>
+      <h1 class="font-display text-4xl sm:text-5xl font-medium leading-tight mb-6">
+        Talk it through, <span class="text-primary italic">one breath</span> at a time.
+      </h1>
+      <p class="text-muted text-lg mb-8 max-w-md">
+        MindCheck AI is a conversational companion for emotional check-ins, reframing hard thoughts, and quick grounding exercises — available whenever you need to talk something out.
+      </p>
+      <div class="flex flex-wrap gap-3">
+        <button onclick="enterApp()" class="focus-ring px-6 py-3 rounded-full bg-primary text-white font-semibold shadow-app">Start a check-in</button>
+        <button onclick="document.getElementById('how-it-works').scrollIntoView({behavior:'smooth'})" class="focus-ring px-6 py-3 rounded-full border border-app font-semibold">See how it works</button>
+      </div>
+    </div>
+    <div class="flex justify-center items-center">
+      <div class="breathe-wrap flex items-center justify-center">
+        <div class="breathe-ring"></div>
+        <div class="breathe-ring delay"></div>
+        <div class="relative z-10 text-white text-center font-display">
+          <p class="breathe-label text-sm tracking-wide">breathe</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DISCLAIMER BANNER -->
+  <section class="max-w-4xl mx-auto px-6 mb-20">
+    <div class="border-2 border-app rounded-2xl bg-surface-alt px-6 py-5 flex gap-4 items-start shadow-app">
+      <span class="text-2xl leading-none">ⓘ</span>
+      <p class="text-sm sm:text-base">
+        <strong>MindCheck AI is an emotional support tool and not a substitute for professional medical advice, diagnosis, or therapy.</strong>
+        If you are in crisis or thinking about harming yourself, please contact a crisis line or emergency services right away.
+        <button onclick="openCrisisModal()" class="text-crisis underline font-semibold ml-1">See crisis resources</button>
+      </p>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how-it-works" class="max-w-6xl mx-auto px-6 pb-20">
+    <h2 class="font-display text-2xl sm:text-3xl font-medium mb-10 text-center">Three steps, whenever you need them</h2>
+    <div class="grid sm:grid-cols-3 gap-6">
+      <div class="bg-surface rounded-2xl p-6 border border-app">
+        <p class="text-primary font-display text-3xl mb-3">01</p>
+        <h3 class="font-semibold text-lg mb-2">Share how you feel</h3>
+        <p class="text-muted text-sm">Type in plain language — no forms, no diagnosis codes. Just what's on your mind right now.</p>
+      </div>
+      <div class="bg-surface rounded-2xl p-6 border border-app">
+        <p class="text-primary font-display text-3xl mb-3">02</p>
+        <h3 class="font-semibold text-lg mb-2">Reflect together</h3>
+        <p class="text-muted text-sm">MindCheck AI listens, asks gentle follow-up questions, and helps you name what you're feeling.</p>
+      </div>
+      <div class="bg-surface rounded-2xl p-6 border border-app">
+        <p class="text-primary font-display text-3xl mb-3">03</p>
+        <h3 class="font-semibold text-lg mb-2">Build a next step</h3>
+        <p class="text-muted text-sm">Leave with a small, concrete coping tool — a breathing exercise, a reframed thought, or a next call to make.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SAFETY -->
+  <section class="max-w-6xl mx-auto px-6 pb-24">
+    <div class="bg-surface-alt rounded-3xl p-8 sm:p-10 border border-app grid md:grid-cols-2 gap-8 items-center">
+      <div>
+        <h2 class="font-display text-2xl font-medium mb-3">Safety comes first</h2>
+        <p class="text-muted mb-4">Every conversation is monitored for signs of crisis. If MindCheck AI detects language about self-harm or severe distress, it immediately surfaces crisis hotlines and encourages reaching a real person.</p>
+        <button onclick="openCrisisModal()" class="focus-ring px-5 py-2.5 rounded-full bg-crisis text-white font-semibold">View crisis hotlines</button>
+      </div>
+      <ul class="space-y-3 text-sm">
+        <li class="flex gap-2"><span class="text-primary">✓</span> Never provides diagnoses or medication advice</li>
+        <li class="flex gap-2"><span class="text-primary">✓</span> Always names itself as an AI, not a clinician</li>
+        <li class="flex gap-2"><span class="text-primary">✓</span> Surfaces real hotlines the moment risk language appears</li>
+        <li class="flex gap-2"><span class="text-primary">✓</span> Encourages professional care for ongoing support</li>
+        <li class="flex gap-2"><span class="text-primary">✓</span> Your check-ins are kept private and confidential — never sold or shared with third parties</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- PRIVACY NOTE -->
+  <section class="max-w-4xl mx-auto px-6 pb-20">
+    <div class="rounded-2xl bg-primary-soft border border-app px-6 py-5 flex gap-4 items-start">
+      <span class="text-2xl leading-none">🔒</span>
+      <p class="text-sm sm:text-base">
+        <strong>Your privacy is protected.</strong> What you share with MindCheck AI is kept confidential and used only to respond to you — it is not sold, publicly posted, or shared with third parties without your consent.
+      </p>
+    </div>
+  </section>
+
+  <footer class="max-w-6xl mx-auto px-6 pb-10 text-sm text-muted flex flex-wrap justify-between gap-4 border-t border-app pt-6">
+    <span>© 2026 MindCheck AI — a self-reflection tool, not a medical device.</span>
+    <button onclick="openCrisisModal()" class="text-crisis font-semibold underline">Crisis resources</button>
+  </footer>
+</div>
+
+<!-- ================= APP VIEW ================= -->
+<div id="app-view" class="hidden h-screen flex">
+  <!-- SIDEBAR -->
+  <aside class="w-72 shrink-0 bg-surface-alt border-r border-app flex flex-col h-full">
+    <div class="p-4 flex items-center gap-2 border-b border-app">
+      <div class="w-7 h-7 rounded-full bg-primary"></div>
+      <span class="font-display font-medium">MindCheck AI</span>
+    </div>
+    <div class="p-3">
+      <button onclick="newChat()" class="focus-ring w-full text-left px-4 py-2.5 rounded-xl bg-primary text-white font-semibold text-sm">+ New check-in</button>
+    </div>
+    <div class="px-3 pb-2 text-xs font-semibold text-muted uppercase tracking-wide">Recent</div>
+    <div id="history-list" class="flex-1 overflow-y-auto px-3 space-y-1 text-sm"></div>
+    <div class="p-3 border-t border-app space-y-2">
+      <button onclick="openCrisisModal()" class="focus-ring w-full text-left px-4 py-2.5 rounded-xl bg-crisis-soft text-crisis font-semibold text-sm flex items-center gap-2">
+        Get Immediate Help
+      </button>
+      <a href="#" onclick="openGroundingModal(); return false;" class="block px-4 py-2 rounded-xl text-sm text-muted hover:bg-surface">📚 Grounding exercises</a>
+      <a href="#" onclick="openSettingsModal(); return false;" class="block px-4 py-2 rounded-xl text-sm text-muted hover:bg-surface flex items-center justify-between">
+        <span>⚙️ AI settings</span>
+        <span id="api-key-status" class="hidden w-2 h-2 rounded-full bg-primary"></span>
+      </a>
+      <div class="flex items-center justify-between px-4 pt-2">
+        <button onclick="exitApp()" class="focus-ring text-sm text-muted underline">← Landing page</button>
+        <button onclick="toggleTheme()" id="theme-toggle-app" class="focus-ring w-9 h-9 rounded-full border border-app flex items-center justify-center text-sm">🌙</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CHAT -->
+  <main class="flex-1 flex flex-col h-full">
+    <div class="border-b border-app px-6 py-4 flex items-center justify-between">
+      <div>
+        <h1 class="font-display font-medium text-lg" id="chat-title">New check-in</h1>
+        <p class="text-xs text-muted flex items-center gap-1">🔒 Private &amp; confidential — not a substitute for professional care</p>
+      </div>
+      <button onclick="openCrisisModal()" class="focus-ring text-sm font-semibold px-4 py-2 rounded-full bg-crisis-soft text-crisis border border-app">Get Immediate Help</button>
+    </div>
+
+    <div id="messages" class="flex-1 overflow-y-auto px-6 py-6 space-y-4 max-w-3xl mx-auto w-full"></div>
+
+    <!-- suggestion chips -->
+    <div id="suggestions" class="max-w-3xl mx-auto w-full px-6 pb-3 flex flex-wrap gap-2">
+      <button class="chip focus-ring px-4 py-2 rounded-full border border-app bg-surface text-sm" onclick="sendSuggested(this)">I'm feeling anxious today</button>
+      <button class="chip focus-ring px-4 py-2 rounded-full border border-app bg-surface text-sm" onclick="sendSuggested(this)">Help me reframe negative thoughts</button>
+      <button class="chip focus-ring px-4 py-2 rounded-full border border-app bg-surface text-sm" onclick="sendSuggested(this)">Guide me through a quick breathing exercise</button>
+      <button class="chip focus-ring px-4 py-2 rounded-full border border-app bg-surface text-sm" onclick="sendSuggested(this)">I just need to vent for a minute</button>
+    </div>
+
+    <form id="composer" onsubmit="return handleSend(event)" class="max-w-3xl mx-auto w-full px-6 pb-6">
+      <div class="flex items-end gap-2 bg-surface border border-app rounded-2xl p-2 shadow-app">
+        <textarea id="chat-input" rows="1" placeholder="Share what's on your mind…"
+          class="focus-ring flex-1 resize-none bg-transparent px-3 py-2 text-sm outline-none max-h-40"
+          onkeydown="handleComposerKey(event)"></textarea>
+        <button type="submit" class="focus-ring shrink-0 w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center">↑</button>
+      </div>
+      <p class="text-xs text-muted mt-2 text-center">🔒 Your check-ins are private and confidential. MindCheck AI can be wrong, and it isn't a clinician — in an emergency, contact local emergency services.</p>
+    </form>
+  </main>
+</div>
+
+<!-- ================= CRISIS MODAL ================= -->
+<div id="crisis-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4">
+  <div class="absolute inset-0 bg-black/50" onclick="closeCrisisModal()"></div>
+  <div class="relative bg-surface rounded-3xl max-w-md w-full p-7 shadow-app border border-app">
+    <div class="flex items-center gap-3 mb-4">
+      <h2 class="font-display text-xl font-medium">You deserve real support right now</h2>
+    </div>
+    <p class="text-sm text-muted mb-5">If you're in immediate danger, please call your local emergency number. Otherwise, these lines are free, confidential, and available now:</p>
+    <ul class="space-y-3 mb-5 text-sm max-h-80 overflow-y-auto pr-1">
+      <li class="bg-crisis-soft rounded-xl p-3">
+        <p class="font-semibold text-crisis mb-1">National Center for Mental Health (NCMH) Crisis Hotline</p>
+        <p class="flex justify-between"><span>1553</span><span class="text-muted">Toll-free Luzon-wide landline</span></p>
+        <p class="flex justify-between"><span>0917-899-8727</span><span class="text-muted">Mobile</span></p>
+        <p class="flex justify-between"><span>0918-989-8727</span><span class="text-muted">Mobile</span></p>
+      </li>
+      <li class="bg-crisis-soft rounded-xl p-3">
+        <p class="font-semibold text-crisis mb-1">Hopeline PH (Suicide Prevention &amp; Crisis Support)</p>
+        <p class="flex justify-between"><span>2919</span><span class="text-muted">Globe/TM toll-free</span></p>
+        <p class="flex justify-between"><span>02-8804-4673</span><span class="text-muted">Landline</span></p>
+        <p class="flex justify-between"><span>0917-558-4673</span><span class="text-muted">Mobile</span></p>
+      </li>
+      <li class="bg-crisis-soft rounded-xl p-3">
+        <p class="font-semibold text-crisis mb-1">In Touch Community Services</p>
+        <p class="flex justify-between"><span>02-8893-7603</span><span class="text-muted">Landline</span></p>
+        <p class="flex justify-between"><span>0917-800-1123</span><span class="text-muted">Globe</span></p>
+        <p class="flex justify-between"><span>0922-893-8944</span><span class="text-muted">Sun</span></p>
+      </li>
+    </ul>
+    <button onclick="closeCrisisModal()" class="focus-ring w-full px-5 py-2.5 rounded-full bg-primary text-white font-semibold">Close</button>
+  </div>
+</div>
+
+<!-- ================= GROUNDING EXERCISES MODAL ================= -->
+<div id="grounding-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4">
+  <div class="absolute inset-0 bg-black/50" onclick="closeGroundingModal()"></div>
+  <div class="relative bg-surface rounded-3xl max-w-lg w-full p-7 shadow-app border border-app max-h-[85vh] flex flex-col">
+    <h2 class="font-display text-xl font-medium mb-1">Grounding exercises</h2>
+    <p class="text-sm text-muted mb-4">Simple techniques to interrupt racing thoughts and bring you back to the present moment.</p>
+
+    <div class="overflow-y-auto pr-1 space-y-3">
+      <details class="bg-surface-alt rounded-xl border border-app p-4" open>
+        <summary class="font-semibold cursor-pointer">5 Senses Technique (5‑4‑3‑2‑1 Method)</summary>
+        <p class="text-xs text-muted mt-2 mb-2">Engages all five senses to interrupt racing thoughts.</p>
+        <ul class="text-sm space-y-2 list-disc pl-5">
+          <li><strong>5 things you can see</strong> — look around and name five distinct items (a clock, a pattern on the wall, a tree outside).</li>
+          <li><strong>4 things you can touch</strong> — feel four textures near you (fabric of your pants, a cool desk surface, the edge of a chair).</li>
+          <li><strong>3 things you can hear</strong> — notice three ambient sounds (distant traffic, a fan humming, birds chirping).</li>
+          <li><strong>2 things you can smell</strong> — identify two scents (coffee brewing, soap, fresh air).</li>
+          <li><strong>1 thing you can taste</strong> — focus on one taste (a mint, a sip of water, or simply the current taste in your mouth).</li>
+        </ul>
+      </details>
+
+      <details class="bg-surface-alt rounded-xl border border-app p-4">
+        <summary class="font-semibold cursor-pointer">Physical &amp; body-based grounding</summary>
+        <p class="text-xs text-muted mt-2 mb-2">Uses movement and physical contact to bring awareness back to the body.</p>
+        <ul class="text-sm space-y-2 list-disc pl-5">
+          <li><strong>Feet on the floor</strong> — sit comfortably, uncross your legs, place both feet flat on the ground, and press down firmly. Focus on the connection between your soles and the floor.</li>
+          <li><strong>Progressive muscle relaxation</strong> — tense a muscle group (shoulders or fists) tightly for 5 seconds, then fully release. Notice the contrast between tension and relaxation.</li>
+        </ul>
+      </details>
+
+      <details class="bg-surface-alt rounded-xl border border-app p-4">
+        <summary class="font-semibold cursor-pointer">Cognitive grounding</summary>
+        <p class="text-xs text-muted mt-2 mb-2">Re-engages the rational, analytical part of your brain.</p>
+        <ul class="text-sm space-y-2 list-disc pl-5">
+          <li><strong>Category naming</strong> — pick a broad category (dog breeds, cities, movies, fruits) and name 10 items as quickly as you can.</li>
+          <li><strong>The alphabet game</strong> — pick a topic (animals, foods) and name one item starting with each letter, A to Z.</li>
+          <li><strong>Mental math</strong> — count backward from 100 by 7s, or recite a favorite poem, song lyric, or quote backward.</li>
+        </ul>
+      </details>
+
+      <details class="bg-surface-alt rounded-xl border border-app p-4">
+        <summary class="font-semibold cursor-pointer">Breathing exercises</summary>
+        <p class="text-xs text-muted mt-2 mb-2">Controlled breathing directly stimulates the parasympathetic nervous system to slow your heart rate.</p>
+        <ul class="text-sm space-y-2 list-disc pl-5">
+          <li><strong>Box breathing</strong> — inhale through the nose for 4 seconds, hold for 4 seconds, exhale through the mouth for 4 seconds, hold empty for 4 seconds. Repeat for 3–4 cycles.</li>
+          <li><strong>4‑7‑8 breathing</strong> — inhale quietly through the nose for 4 seconds, hold for 7 seconds, exhale completely through the mouth (a soft "whoosh" sound) for 8 seconds.</li>
+        </ul>
+      </details>
+    </div>
+
+    <button onclick="closeGroundingModal()" class="focus-ring w-full mt-4 px-5 py-2.5 rounded-full bg-primary text-white font-semibold">Close</button>
+  </div>
+</div>
+
+<!-- ================= SETTINGS MODAL ================= -->
+<div id="settings-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4">
+  <div class="absolute inset-0 bg-black/50" onclick="closeSettingsModal()"></div>
+  <div class="relative bg-surface rounded-3xl max-w-md w-full p-7 shadow-app border border-app">
+    <h2 class="font-display text-xl font-medium mb-1">AI settings</h2>
+    <p class="text-sm text-muted mb-4">MindCheck AI is powered by Google's Gemini 3.6 Flash. Paste your own Gemini API key below to enable live responses — it's kept only in this browser tab and never sent anywhere but Google's API.</p>
+    <input id="gemini-key-input" type="password" placeholder="Gemini API key"
+      class="focus-ring w-full px-4 py-2.5 rounded-xl border border-app bg-surface-alt text-sm mb-3" />
+    <p id="settings-saved-note" class="hidden text-xs text-primary mb-3">✓ Key saved for this session.</p>
+    <p class="text-xs text-muted mb-4">Don't have one? Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" class="underline">aistudio.google.com/apikey</a>.</p>
+    <div class="flex gap-2">
+      <button onclick="saveApiKeyFromModal()" class="focus-ring flex-1 px-5 py-2.5 rounded-full bg-primary text-white font-semibold">Save key</button>
+      <button onclick="closeSettingsModal()" class="focus-ring px-5 py-2.5 rounded-full border border-app font-semibold">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------------- THEME ---------------- */
+function toggleTheme(){
+  const html = document.documentElement;
+  const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  const icon = next === 'dark' ? '☀️' : '🌙';
+  document.getElementById('theme-toggle-landing').textContent = icon;
+  document.getElementById('theme-toggle-app').textContent = icon;
+}
+
+/* ---------------- VIEW SWITCH ---------------- */
+function enterApp(){
+  document.getElementById('landing-view').classList.add('hidden');
+  document.getElementById('app-view').classList.remove('hidden');
+  document.getElementById('app-view').classList.add('flex');
+  if(chats.length === 0) newChat();
+}
+function exitApp(){
+  document.getElementById('app-view').classList.add('hidden');
+  document.getElementById('landing-view').classList.remove('hidden');
+}
+
+/* ---------------- CRISIS MODAL ---------------- */
+function openCrisisModal(){ document.getElementById('crisis-modal').classList.remove('hidden'); }
+function closeCrisisModal(){ document.getElementById('crisis-modal').classList.add('hidden'); }
+function openGroundingModal(){ document.getElementById('grounding-modal').classList.remove('hidden'); }
+function closeGroundingModal(){ document.getElementById('grounding-modal').classList.add('hidden'); }
+function openSettingsModal(){
+  document.getElementById('gemini-key-input').value = geminiApiKey || '';
+  document.getElementById('settings-saved-note').classList.add('hidden');
+  document.getElementById('settings-modal').classList.remove('hidden');
+}
+function closeSettingsModal(){ document.getElementById('settings-modal').classList.add('hidden'); }
+function saveApiKeyFromModal(){
+  const value = document.getElementById('gemini-key-input').value.trim();
+  geminiApiKey = value || null;
+  document.getElementById('api-key-status').classList.toggle('hidden', !geminiApiKey);
+  document.getElementById('settings-saved-note').classList.toggle('hidden', !geminiApiKey);
+}
+
+/* ---------------- CHAT STATE (in-memory only) ---------------- */
+let chats = [];
+let activeChatId = null;
+
+function newChat(){
+  const id = 'c' + Date.now();
+  chats.unshift({ id, title: 'New check-in', messages: [] });
+  activeChatId = id;
+  renderHistory();
+  renderMessages();
+  document.getElementById('suggestions').classList.remove('hidden');
+}
+
+function renderHistory(){
+  const list = document.getElementById('history-list');
+  list.innerHTML = '';
+  chats.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'focus-ring w-full text-left px-3 py-2 rounded-lg truncate ' +
+      (c.id === activeChatId ? 'bg-surface font-semibold' : 'hover:bg-surface text-muted');
+    btn.textContent = c.title;
+    btn.onclick = () => { activeChatId = c.id; renderHistory(); renderMessages(); };
+    list.appendChild(btn);
+  });
+}
+
+function activeChat(){ return chats.find(c => c.id === activeChatId); }
+
+function renderMessages(){
+  const wrap = document.getElementById('messages');
+  const chat = activeChat();
+  wrap.innerHTML = '';
+  document.getElementById('chat-title').textContent = chat.title;
+  chat.messages.forEach(m => wrap.appendChild(renderBubble(m)));
+  wrap.scrollTop = wrap.scrollHeight;
+  document.getElementById('suggestions').classList.toggle('hidden', chat.messages.length > 0);
+}
+
+function renderBubble(m){
+  const row = document.createElement('div');
+  row.className = 'msg-in flex ' + (m.role === 'user' ? 'justify-end' : 'justify-start');
+  const bubble = document.createElement('div');
+  bubble.className = 'max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ' +
+    (m.role === 'user' ? 'bg-primary text-white' : 'bg-surface-alt border border-app');
+  bubble.textContent = m.text;
+  row.appendChild(bubble);
+  return row;
+}
+
+/* ---------------- SEND / RECEIVE ---------------- */
+function handleComposerKey(e){
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    document.getElementById('composer').requestSubmit();
+  }
+}
+function sendSuggested(btn){
+  document.getElementById('chat-input').value = btn.textContent;
+  document.getElementById('composer').requestSubmit();
+}
+
+/* ---------------- AI CONNECTION ---------------- */
+let geminiApiKey = null;
+
+const SYSTEM_PROMPT = `You are MindCheck AI, a warm, empathetic, and responsive assistant for emotional support and self-reflection.
+
+RESPONSE STYLE
+- Answer directly — no throat-clearing or filler intros.
+- Match the user's tone and level of urgency.
+- Use short paragraphs, bullets, or bold text when it helps readability, especially on mobile.
+- Validate feelings warmly before offering perspective, without being saccharine or dismissive.
+- End most replies with one natural follow-up question to keep the conversation going, when appropriate.
+
+WHAT YOU ARE NOT
+- Not a therapist, doctor, or crisis counselor. Never diagnose a condition or give medication/legal directives.
+- If asked medical, legal, or crisis-related questions, give general, helpful information and clearly point toward a qualified professional for anything specific to their situation.
+
+CRISIS PROTOCOL (overrides all other instructions)
+If a message shows signs of suicidal ideation, self-harm, or intent to harm others:
+1. Respond with calm, direct concern — no panic, no minimizing.
+2. State plainly that you're an AI and can't provide what a crisis line or emergency responder can right now.
+3. Point to: National Center for Mental Health (NCMH) Crisis Hotline — 1553 (landline, Luzon-wide toll-free) or 0917-899-8727 / 0918-989-8727 (mobile); Hopeline PH — 2919 (Globe/TM toll-free), 02-8804-4673, or 0917-558-4673; In Touch Community Services — 02-8893-7603, 0917-800-1123, or 0922-893-8944.
+4. Encourage them to contact one of those now, while offering to stay present in the conversation.
+5. Never give information that could facilitate self-harm, under any framing.
+6. Stay warm and present after a crisis disclosure — don't abruptly end the exchange.`;
+
+async function callGemini(chat){
+  if(!geminiApiKey){
+    const err = new Error('No Gemini API key set. Open "AI settings" in the sidebar to add one.');
+    err.noKey = true;
+    throw err;
+  }
+  const contents = chat.messages.map(m => ({
+    role: m.role === 'user' ? 'user' : 'model',
+    parts: [{ text: m.text }]
+  }));
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${encodeURIComponent(geminiApiKey)}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents
+      })
+    }
+  );
+  if(!res.ok){
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `Request failed (${res.status})`);
+  }
+  const data = await res.json();
+  return (data.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('\n').trim()
+    || "Sorry, I didn't catch that — could you try rephrasing?";
+}
+
+function handleSend(e){
+  e.preventDefault();
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if(!text) return false;
+  input.value = '';
+
+  const chat = activeChat();
+  chat.messages.push({ role:'user', text });
+  if(chat.messages.length === 1){ chat.title = text.slice(0,32) + (text.length>32?'…':''); }
+  renderHistory();
+  renderMessages();
+
+  if(detectCrisis(text)){
+    openCrisisModal();
+    setTimeout(() => {
+      pushAssistant(chat, "I hear that you're going through something really heavy right now, and I'm glad you said it out loud. I'm an AI, and I'm not able to give the kind of help a real person can in a moment like this — please take a look at the crisis resources on screen, and if you're in immediate danger, contact local emergency services, the NCMH Crisis Hotline at 1553, or Hopeline PH at 2919. Would it help to talk through what's happening while you reach out to one of them?");
+    }, 500);
+    return false;
+  }
+
+  showTyping(chat);
+  return false;
+}
+
+function pushAssistant(chat, text){
+  hideTyping();
+  chat.messages.push({ role:'assistant', text });
+  renderMessages();
+}
+function hideTyping(){ const r = document.getElementById('typing-row'); if(r) r.remove(); }
+
+function showTyping(chat){
+  const wrap = document.getElementById('messages');
+  const row = document.createElement('div');
+  row.id = 'typing-row';
+  row.className = 'flex justify-start msg-in';
+  row.innerHTML = `<div class="bg-surface-alt border border-app rounded-2xl px-4 py-3 flex gap-1">
+    <span class="typing-dot w-2 h-2 rounded-full bg-primary inline-block"></span>
+    <span class="typing-dot w-2 h-2 rounded-full bg-primary inline-block"></span>
+    <span class="typing-dot w-2 h-2 rounded-full bg-primary inline-block"></span>
+  </div>`;
+  wrap.appendChild(row);
+  wrap.scrollTop = wrap.scrollHeight;
+
+  callGemini(chat)
+    .then(reply => pushAssistant(chat, reply))
+    .catch(err => {
+      if(err.noKey){
+        pushAssistant(chat, `To get live responses, add a Gemini API key — I've opened the settings panel for you.`);
+        openSettingsModal();
+      } else {
+        pushAssistant(chat, `⚠️ Something went wrong reaching MindCheck AI (${err.message}). Please try again in a moment — if this is urgent, use the "Get Immediate Help" button above.`);
+      }
+    });
+}
+
+/* ---------------- CRISIS KEYWORD DETECTION ---------------- */
+const CRISIS_PATTERNS = [
+  /\bkill myself\b/i, /\bend my life\b/i, /\bsuicid(e|al)\b/i,
+  /\bself[-\s]?harm\b/i, /\bhurt myself\b/i, /\bcut myself\b/i,
+  /\bwant to die\b/i, /\bno reason to live\b/i, /\bbetter off dead\b/i,
+  /\bcan'?t go on\b/i
+];
+function detectCrisis(text){ return CRISIS_PATTERNS.some(p => p.test(text)); }
+</script>
+</body>
+</html>
